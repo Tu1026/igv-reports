@@ -342,7 +342,7 @@ def main():
                         default=None)
     parser.add_argument("--idlink", type=str, help="url link template for the VCF ID column")
     parser.add_argument("--exclude-flags", type=int, help="Passed to samtools to filter alignments.  For BAM and CRAM files.", default=1536)
-    parser.add_argument("--Wyatt-lab", type=str, help="Processing standar Wyatt Lab file format", default=None)
+    parser.add_argument("--wyatt-lab", type=str, help="Processing standar Wyatt Lab file format", default=None)
     args = parser.parse_args()
     create_report(args)
 
