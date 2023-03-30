@@ -44,7 +44,7 @@ def create_report(args):
     elif variants_file.endswith(".maf") or variants_file.endswith(".maf.gz") or (
             args.sequence is not None and args.begin is not None and args.end is not None):
         # A hack -- since these file formats are not supported by igv.js mock up a bed style track from a table of generic features
-        table = GenericTable(variants_file, args.info_columns, args.sequence, args.begin, args.end, args.zero_based)
+        table = GenericTable(variants_file, args.info_columns, args.sequence, args.begin, args.end, args.zero_based, args.bam)
         flist = []
         for tuple in table.features:
             flist.append(tuple[0])
@@ -77,6 +77,7 @@ def create_report(args):
                 j = json.load(f)
                 for c in j:
                     trackjson.append(c)
+
 
     # Create file readers for tracks.  This is done outside the locus loop so initialization happens once
 
@@ -184,6 +185,14 @@ def create_report(args):
                 "tracks": []
             }
 
+            if args.bam is not None:
+                config = tracks.get_track_json_dict(feature.bam)
+                reader = utils.getreader(config, None, args)
+                trackconfigs.append({
+                    "config": config,
+                    "reader": reader
+                })
+
             track_objects = []
             # Loop through user supplied track configs
             # "cram" input format is converted to "bam" for output track configs
@@ -235,6 +244,10 @@ def create_report(args):
             session_string = json.dumps(session_json)
             session_uri = datauri.get_data_uri(session_string)
             session_dict[session_id] = session_uri
+            
+            ## Remove the last track if it is a bam file
+            if args.bam is not None:
+                trackconfigs = trackconfigs[:-1]
 
     session_dict = json.dumps(session_dict)
 

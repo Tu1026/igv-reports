@@ -5,7 +5,7 @@ from .feature import parse
 
 class GenericTable:
 
-    def __init__(self, file, info_columns = None, sequence = None, begin = None, end = None, zero_based=False):
+    def __init__(self, file, info_columns = None, sequence = None, begin = None, end = None, zero_based=False, bam=None):
 
         self.column_names = info_columns
         if sequence is not None and begin is not None and end is not None:
@@ -19,6 +19,9 @@ class GenericTable:
             end_col = presets[2]
             start_offset = presets[3]
 
+        ###For Wyatt Lab Specifically
+        if bam is not None:
+            bam_col = int(bam) - 1
 
         if start_col < 0:
             msg = f"Invalid begin value: {begin}"
@@ -45,7 +48,11 @@ class GenericTable:
                 chr = row[seq_col]
                 start = int(row[start_col]) - start_offset
                 end = int(row[end_col])
-                self.features.append((_Feature(chr, start, end), unique_id))
+                
+                ###For Wyatt Lab Specifically
+                bam_url = row[bam_col] if bam is not None else None
+                
+                self.features.append((_Feature(chr, start, end, bam_url), unique_id))
                 unique_id += 1
 
     def to_JSON(self):
@@ -101,7 +108,8 @@ class GenericTable:
 
 class _Feature:
 
-    def __init__(self, chr, start, end):
+    def __init__(self, chr, start, end, bam=None):
         self.chr = chr
         self.start = start
         self.end = end
+        self.bam = bam
