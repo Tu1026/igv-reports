@@ -336,13 +336,13 @@ def main():
     parser.add_argument("--sequence", help="Column of sequence (chromosome) name.  For tab-delimited sites file.",
                         default=None)
     parser.add_argument("--begin", help="Column of start position.  For tab-delimited sites file.", default=None)
-    parser.add_argument("--end", help="column of end position. For tab-delimited sites file.", default=None)
+    parser.add_argument("--end", help="Column of end position. For tab-delimited sites file.", default=None)
+    parser.add_argument("--bam", type=str, help="Column of bam file uri. For tab-delimited sites file.", default=None)
     parser.add_argument("--zero_based",
                         help="Specify that the position in the data file is 0-based (e.g. UCSC files) rather than 1-based.",
                         default=None)
     parser.add_argument("--idlink", type=str, help="url link template for the VCF ID column")
     parser.add_argument("--exclude-flags", type=int, help="Passed to samtools to filter alignments.  For BAM and CRAM files.", default=1536)
-    parser.add_argument("--wyatt-lab", type=str, help="Processing standar Wyatt Lab file format", default=None)
     args = parser.parse_args()
     create_report(args)
 
