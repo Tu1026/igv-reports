@@ -1,0 +1,1 @@
+create_report ind_sub.tsv --flanking 30 --genome hg38 --sequence 2 --begin 3 --end 3 --info-columns Sample_ID CHROM   POSITION        REF     ALT     GENE    EFFECT  Allele_frequency   Read_depth --bam 11 --output ind_test.html 
