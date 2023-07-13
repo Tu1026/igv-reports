@@ -1,12 +1,17 @@
 <html>
-
-<head>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <head>
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
     <meta name="description" content="" />
     <meta name="author" content="" />
 
@@ -16,137 +21,137 @@
     <script src="https://cdn.jsdelivr.net/npm/igv@2.13.11/dist/igv.min.js"></script>
 
     <style type="text/css">
-        body {
-            font-size: 80%;
-            font-family: "Lucida Grande", Verdana, Arial, Sans-Serif;
-        }
+      body {
+        font-size: 80%;
+        font-family: "Lucida Grande", Verdana, Arial, Sans-Serif;
+      }
     </style>
 
     <!-- selector table style -->
     <style>
-        #tableSelectorDiv {
-            max-height: 50%;
-            overflow: auto;
-        }
-        
-        thead {
-            position: sticky;
-            top: 0;
-        }
-        
-        tr {
-            cursor: default;
-        }
-        
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        
-        tr:hover {
-            background-color: lightblue;
-        }
-        
-        th {
-            background-color: lightskyblue;
-            color: white;
-            cursor: pointer;
-        }
-        
-        .selected {
-            background-color: lightblue !important;
-            outline: solid thin darkblue !important;
-        }
-        
-        .need_curation {
-            background-color: #ffffe0 !important;
-        }
-        
-        .blacklisted {
-            background-color: #ddd !important;
-        }
+      #tableSelectorDiv {
+        max-height: 50%;
+        overflow: auto;
+      }
+
+      thead {
+        position: sticky;
+        top: 0;
+      }
+
+      tr {
+        cursor: default;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+
+      tr:hover {
+        background-color: lightblue;
+      }
+
+      th {
+        background-color: lightskyblue;
+        color: white;
+        cursor: pointer;
+      }
+
+      .selected {
+        background-color: lightblue !important;
+        outline: solid thin darkblue !important;
+      }
+
+      .need_curation {
+        background-color: #ffffe0 !important;
+      }
+
+      .blacklisted {
+        background-color: #ddd !important;
+      }
     </style>
 
     <!-- accordian style,  ref: https://alligator.io/css/collapsible/ -->
     <style type="text/css">
-        .wrap-collabsible {
-            margin-bottom: 1.2rem;
-        }
-        
-        input[type="checkbox"] {
-            display: none;
-        }
-        
-        .lbl-toggle {
-            display: block;
-            font-weight: bold;
-            font-family: monospace;
-            font-size: 1.2rem;
-            text-transform: uppercase;
-            text-align: left;
-            padding: 1rem;
-            color: black;
-            background: #dddddd;
-            cursor: pointer;
-            border-radius: 7px;
-            transition: all 0.25s ease-out;
-        }
-        
-        .lbl-toggle:hover {
-            color: blue;
-        }
-        
-        .lbl-toggle::before {
-            content: " ";
-            display: inline-block;
-            border-top: 5px solid transparent;
-            border-bottom: 5px solid transparent;
-            border-left: 5px solid currentColor;
-            vertical-align: middle;
-            margin-right: 0.7rem;
-            transform: translateY(-2px);
-            transition: transform 0.2s ease-out;
-        }
-        
-        .toggle:checked+.lbl-toggle::before {
-            transform: rotate(90deg) translateX(-3px);
-        }
-        
-        .collapsible-content {
-            max-height: 0px;
-            overflow: auto;
-            transition: max-height 0.25s ease-in-out;
-        }
-        
-        .toggle:checked+.lbl-toggle+.collapsible-content {
-            max-height: 350px;
-        }
-        
-        .toggle:checked+.lbl-toggle {
-            border-bottom-right-radius: 0;
-            border-bottom-left-radius: 0;
-        }
-        
-        .collapsible-content .content-inner {
-            background: rgba(250, 224, 66, 0.2);
-            border-bottom: 1px solid rgba(250, 224, 66, 0.45);
-            border-bottom-left-radius: 7px;
-            border-bottom-right-radius: 7px;
-            padding: 0.5rem 1rem;
-        }
-    </style>
-</head>
+      .wrap-collabsible {
+        margin-bottom: 1.2rem;
+      }
 
-<body>
+      input[type="checkbox"] {
+        display: none;
+      }
+
+      .lbl-toggle {
+        display: block;
+        font-weight: bold;
+        font-family: monospace;
+        font-size: 1.2rem;
+        text-transform: uppercase;
+        text-align: left;
+        padding: 1rem;
+        color: black;
+        background: #dddddd;
+        cursor: pointer;
+        border-radius: 7px;
+        transition: all 0.25s ease-out;
+      }
+
+      .lbl-toggle:hover {
+        color: blue;
+      }
+
+      .lbl-toggle::before {
+        content: " ";
+        display: inline-block;
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-left: 5px solid currentColor;
+        vertical-align: middle;
+        margin-right: 0.7rem;
+        transform: translateY(-2px);
+        transition: transform 0.2s ease-out;
+      }
+
+      .toggle:checked + .lbl-toggle::before {
+        transform: rotate(90deg) translateX(-3px);
+      }
+
+      .collapsible-content {
+        max-height: 0px;
+        overflow: auto;
+        transition: max-height 0.25s ease-in-out;
+      }
+
+      .toggle:checked + .lbl-toggle + .collapsible-content {
+        max-height: 350px;
+      }
+
+      .toggle:checked + .lbl-toggle {
+        border-bottom-right-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+
+      .collapsible-content .content-inner {
+        background: rgba(250, 224, 66, 0.2);
+        border-bottom: 1px solid rgba(250, 224, 66, 0.45);
+        border-bottom-left-radius: 7px;
+        border-bottom-right-radius: 7px;
+        padding: 0.5rem 1rem;
+      }
+    </style>
+  </head>
+
+  <body>
     <div id="tableContainer" class="wrap-collabsible">
-        <input id="collapsible" class="toggle" type="checkbox" checked />
-        <label for="collapsible" class="lbl-toggle">Variants</label>
-        <div class="collapsible-content">
-            <div id="tableSelectorDiv"></div>
-        </div>
+      <input id="collapsible" class="toggle" type="checkbox" checked />
+      <label for="collapsible" class="lbl-toggle">Variants</label>
+      <div class="collapsible-content">
+        <div id="tableSelectorDiv"></div>
+      </div>
     </div>
 
     <div id="igvContainer">
-        <div id="igvDiv"></div>
+      <div id="igvDiv"></div>
     </div>
 
     <!--
@@ -156,195 +161,249 @@ Uncomment for local debugging.  "igv.js" is a soft link to the local igv.js repo
 -->
 
     <script type="text/javascript">
-        var tableJson = "@TABLE_JSON@";
-        var igvBrowser;
-        var sessionDictionary = "@SESSION_DICTIONARY@";
+      var tableJson = "@TABLE_JSON@";
+      var igvBrowser;
+      var sessionDictionary = "@SESSION_DICTIONARY@";
+      document.addEventListener("DOMContentLoaded", function () {
+        initIGV();
+      });
 
-        document.addEventListener("DOMContentLoaded", function() {
-            initIGV();
+      function initIGV() {
+        var igvDiv;
+
+        igvDiv = document.getElementById("igvDiv");
+        var options = {
+          sessionURL: sessionDictionary["0"],
+          showChromosomeWidget: false,
+          showCenterGuide: true,
+          search: false, // disable webservice search
+        };
+
+        igv.createBrowser(igvDiv, options).then(function (b) {
+          igvBrowser = b;
+          initTable();
+        });
+      }
+
+      function initTable() {
+        const table = document.createElement("table");
+        table.id = "variant_table";
+        table.style.width = "100%";
+
+        document.getElementById("tableSelectorDiv").appendChild(table);
+
+        const thead = document.createElement("thead");
+        table.appendChild(thead);
+        const headerRow = thead.insertRow(0);
+
+        const headers = tableJson.headers;
+        for (let j = 1; j < headers.length; j++) {
+          var cell = document.createElement("th");
+          headerRow.appendChild(cell);
+          cell.innerHTML = headers[j];
+        }
+
+        const tbody = document.createElement("tbody");
+        table.appendChild(tbody);
+        const tableRows = tableJson.rows;
+        for (let i = 0; i < tableRows.length; i++) {
+          const json = tableRows[i];
+          const unique_id = json[0];
+          const row = document.createElement("tr");
+          row.id = "row_" + unique_id;
+          tbody.appendChild(row);
+          row.classList.add("need_curation");
+
+          // First row selected by default
+          if (i === 0) row.classList.add("selected");
+
+          row.onclick = function (event) {
+            const list = document
+              .getElementById("variant_table")
+              .getElementsByTagName("tr");
+            for (let i = 0; i < list.length; i++) {
+              list[i].classList.remove("selected");
+            }
+            const rowID = event.target.parentElement.id;
+            const row = document.getElementById(rowID);
+            row.classList.add("selected");
+            const uniqueId = rowID.substring(4);
+            const session = sessionDictionary[uniqueId];
+            igvBrowser.loadSession({
+              url: session,
+            });
+          };
+
+          for (let j = 1; j < headers.length; j++) {
+            var value = json[j];
+            cell = document.createElement("td");
+            cell.rowID = i;
+            row.appendChild(cell);
+            cell.innerHTML = value;
+          }
+        }
+
+        //Keyboard shortcuts for curation
+        const forward_shortcuts = ["q", "w", "e"];
+        const backwards_shortcuts = ["b"];
+        const save_shortcut = ["s"];
+
+        document.addEventListener("keypress", function (event) {
+          selected_row = document.querySelector(".selected");
+          const rowID = selected_row.id;
+          const uniqueId_int = parseInt(rowID.substring(4));
+
+          if (forward_shortcuts.includes(event.key)) {
+            //selected_row.classList.remove("need_curation");
+            selected_row.className = "";
+            //Blacklist
+            if (event.key === "q") {
+              selected_row.classList.add("blacklisted");
+              //selected_row.classList.remove("need_curation");
+            }
+            //Greenlist
+            if (event.key === "e") {
+              selected_row.classList.remove("need_curation");
+            }
+            //Skip
+            if (event.key === "w") {
+              selected_row.classList.add("need_curation");
+            }
+
+            //This is the last element
+            if (uniqueId_int == Object.keys(sessionDictionary).length - 1) {
+              selected_row.classList.add("selected");
+            } else {
+              selected_row.classList.remove("selected");
+              const next_unique_id = "row_" + (uniqueId_int + 1).toString();
+              const row = document.getElementById(next_unique_id);
+              row.classList.add("selected");
+              const session = sessionDictionary[(uniqueId_int + 1).toString()];
+              igvBrowser.loadSession({
+                url: session,
+              });
+            }
+          } else if (backwards_shortcuts.includes(event.key)) {
+            //Go back
+            if (event.key === "b") {
+              selected_row.className = "";
+              selected_row.classList.add("need_curation");
+              //This is the first item
+              if (uniqueId_int === 0) {
+                selected_row.classList.add("selected");
+              } else {
+                const previous_unique_id =
+                  "row_" + (uniqueId_int - 1).toString();
+                const row = document.getElementById(previous_unique_id);
+                row.className = "";
+                row.classList.add("selected");
+                const session =
+                  sessionDictionary[(uniqueId_int - 1).toString()];
+                igvBrowser.loadSession({
+                  url: session,
+                });
+              }
+            }
+          } else if (save_shortcut.includes(event.key)) {
+            /* var pathname = window.location.pathname;
+            var filenameWithExtension = pathname.substring(
+              pathname.lastIndexOf("/") + 1
+            );
+            var filename = filenameWithExtension.split(".")[0]; */
+            const list = document
+              .getElementById("variant_table")
+              .getElementsByTagName("tr");
+            save_file(list);
+          }
         });
 
-        function initIGV() {
-            var igvDiv;
+        function save_file(list) {
+          var tsv_content = "";
+          var whitelist_content = "";
+          var blacklist_content = "";
+          for (var i = 1; i < list.length; i++) {
+            var tsv_content = "";
+            for (var j = 1; j <= 4; j++) {
+              tsv_content += list[i].cells[j].innerHTML;
+              if (j !== 4) {
+                tsv_content += "\t";
+              }
+            }
+            if (list[i].classList.contains("blacklisted")) {
+              blacklist_content += tsv_content + "\n";
+            } else if (list[i].classList.contains("need_curation")) {
+              continue;
+            } else {
+              whitelist_content += tsv_content + "\n";
+            }
 
-            igvDiv = document.getElementById("igvDiv");
-            var options = {
-                sessionURL: sessionDictionary["0"],
-                showChromosomeWidget: false,
-                showCenterGuide: true,
-                search: false, // disable webservice search
-            };
-
-            igv.createBrowser(igvDiv, options).then(function(b) {
-                igvBrowser = b;
-                initTable();
-            });
+            tsv_content += "\n";
+          }
+          download(blacklist_content, "Blacklist.tsv");
+          download(whitelist_content, "Whitelist.tsv");
         }
 
-        function initTable() {
-            const table = document.createElement("table");
-            table.id = "variant_table";
-            table.style.width = "100%";
+        function download(tsv_content, filename) {
+          // Create a Blob from the TSV content
+          var blob = new Blob([tsv_content], { type: "text/tsv" });
 
-            document.getElementById("tableSelectorDiv").appendChild(table);
+          // Create a download link
+          var link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = filename;
+          link.style.display = "none";
 
-            const thead = document.createElement("thead");
-            table.appendChild(thead);
-            const headerRow = thead.insertRow(0);
+          // Append the link to the document body
+          document.body.appendChild(link);
 
-            const headers = tableJson.headers;
-            for (let j = 1; j < headers.length; j++) {
-                var cell = document.createElement("th");
-                headerRow.appendChild(cell);
-                cell.innerHTML = headers[j];
-            }
+          // Trigger the download
+          link.click();
 
-            const tbody = document.createElement("tbody");
-            table.appendChild(tbody);
-            const tableRows = tableJson.rows;
-            for (let i = 0; i < tableRows.length; i++) {
-                const json = tableRows[i];
-                const unique_id = json[0];
-                const row = document.createElement("tr");
-                row.id = "row_" + unique_id;
-                tbody.appendChild(row);
-                row.classList.add("need_curation");
+          // Clean up the temporary link element
+          document.body.removeChild(link);
+        }
 
-                // First row selected by default
-                if (i === 0) row.classList.add("selected");
-
-                row.onclick = function(event) {
-                    const list = document
-                        .getElementById("variant_table")
-                        .getElementsByTagName("tr");
-                    for (let i = 0; i < list.length; i++) {
-                        list[i].classList.remove("selected");
-                    }
-                    const rowID = event.target.parentElement.id;
-                    const row = document.getElementById(rowID);
-                    row.classList.add("selected");
-                    const uniqueId = rowID.substring(4);
-                    const session = sessionDictionary[uniqueId];
-                    igvBrowser.loadSession({
-                        url: session,
-                    });
-                };
-
-                for (let j = 1; j < headers.length; j++) {
-                    var value = json[j];
-                    cell = document.createElement("td");
-                    cell.rowID = i;
-                    row.appendChild(cell);
-                    cell.innerHTML = value;
-                }
-            }
-
-            //Keyboard shortcuts for curation
-            const forward_shortcuts = ["q", "w", "e"];
-            const backwards_shortcuts = ["b"]
-
-            document.addEventListener("keypress", function(event) {
-                selected_row = document.querySelector(".selected");
-                const rowID = selected_row.id;
-                const uniqueId_int = parseInt(rowID.substring(4));
-
-                if (forward_shortcuts.includes(event.key)) {
-                    //selected_row.classList.remove("need_curation");
-                    selected_row.className = "";
-                    //Blacklist
-                    if (event.key == "q") {
-                        selected_row.classList.add("blacklisted");
-                        //selected_row.classList.remove("need_curation");
-
-                    }
-                    //Greenlist
-                    if (event.key = "e") {
-                        selected_row.classList.remove("need_curation");
-                    }
-                    //Skip
-                    if (event.key = "w") {
-                        selected_row.classList.add("need_curation");
-                    }
-
-                    //This is the last element
-                    if (uniqueId_int == Object.keys(sessionDictionary).length - 1) {
-                        selected_row.classList.add("selected");
-                    } else {
-                        selected_row.classList.remove("selected")
-                        const next_unique_id = "row_" + (uniqueId_int + 1).toString();
-                        const row = document.getElementById(next_unique_id);
-                        row.classList.add("selected");
-                        const session = sessionDictionary[(uniqueId_int + 1).toString()];
-                        igvBrowser.loadSession({
-                            url: session,
-                        });
-                    }
-
-                } else if (backwards_shortcuts.includes(event.key)) {
-                    //Go back
-                    if (event.key = "b") {
-                        //This is the first
-                        if (uniqueId_int == 0) {
-                            // do nothing
-                        } else {
-                            selected_row.classList.remove("selected")
-                            const previous_unique_id = "row_" + (uniqueId_int - 1).toString();
-                            const row = document.getElementById(previous_unique_id);
-                            row.className = "";
-                            row.classList.add("selected");
-                            row.classList.add("need_curation")
-                            const session = sessionDictionary[(uniqueId_int - 1).toString()];
-                            igvBrowser.loadSession({
-                                url: session,
-                            });
-                        }
-                    }
-
-                }
-            });
-
-            // Add sorting.  Adapted from https://stackoverflow.com/questions/14267781/sorting-html-table-with-javascript/49041392
-            Array.prototype.slice
-                .call(document.querySelectorAll("th"))
-                .forEach(function(th) {
-                    th.addEventListener("click", function() {
-                        //var table = th.parentNode
-                        //while (table.tagName.toUpperCase() != 'TABLE') table = table.parentNode;
-                        Array.prototype.slice
-                            .call(table.querySelectorAll("tr:nth-child(n+1)"), 1)
-                            .sort(
-                                comparer(
-                                    Array.prototype.slice
-                                    .call(th.parentNode.children)
-                                    .indexOf(th),
-                                    (this.asc = !this.asc)
-                                )
-                            )
-                            .forEach(function(tr) {
-                                table.appendChild(tr);
-                            });
-                    });
+        // Add sorting.  Adapted from https://stackoverflow.com/questions/14267781/sorting-html-table-with-javascript/49041392
+        Array.prototype.slice
+          .call(document.querySelectorAll("th"))
+          .forEach(function (th) {
+            th.addEventListener("click", function () {
+              //var table = th.parentNode
+              //while (table.tagName.toUpperCase() != 'TABLE') table = table.parentNode;
+              Array.prototype.slice
+                .call(table.querySelectorAll("tr:nth-child(n+1)"), 1)
+                .sort(
+                  comparer(
+                    Array.prototype.slice
+                      .call(th.parentNode.children)
+                      .indexOf(th),
+                    (this.asc = !this.asc)
+                  )
+                )
+                .forEach(function (tr) {
+                  table.appendChild(tr);
                 });
+            });
+          });
 
-            function getCellValue(tr, idx) {
-                return tr.children[idx].innerText || tr.children[idx].textContent;
-            }
-
-            function comparer(idx, asc) {
-                return function(a, b) {
-                    return (function(v1, v2) {
-                        // Special case for chromosome coloumn
-                        if (idx === 0 && v1.startsWith("chr") && v2.startsWith("chr")) {
-                            v1 = v1.substr(3);
-                            v2 = v2.substr(3);
-                        }
-                        var isNumber = v1 !== "" && v2 !== "" && !isNaN(v1) && !isNaN(v2);
-                        return isNumber ? v1 - v2 : v1.toString().localeCompare(v2);
-                    })(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
-                };
-            }
+        function getCellValue(tr, idx) {
+          return tr.children[idx].innerText || tr.children[idx].textContent;
         }
-    </script>
-</body>
 
+        function comparer(idx, asc) {
+          return function (a, b) {
+            return (function (v1, v2) {
+              // Special case for chromosome coloumn
+              if (idx === 0 && v1.startsWith("chr") && v2.startsWith("chr")) {
+                v1 = v1.substr(3);
+                v2 = v2.substr(3);
+              }
+              var isNumber = v1 !== "" && v2 !== "" && !isNaN(v1) && !isNaN(v2);
+              return isNumber ? v1 - v2 : v1.toString().localeCompare(v2);
+            })(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
+          };
+        }
+      }
+    </script>
+  </body>
 </html>
