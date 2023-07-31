@@ -187,11 +187,15 @@ def create_report(args):
 
             if args.bam is not None:
                 config = tracks.get_track_json_dict(feature.bam)
-                reader = utils.getreader(config, None, args)
-                trackconfigs.append({
-                    "config": config,
-                    "reader": reader
-                })
+                try:
+                    reader = utils.getreader(config, None, args)
+                    trackconfigs.append({
+                        "config": config,
+                        "reader": reader
+                    })
+                except Exception as e:
+                    print(e)
+                    continue
 
             track_objects = []
             # Loop through user supplied track configs
