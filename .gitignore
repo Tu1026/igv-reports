@@ -114,3 +114,5 @@ venv.bak/
 /sarscov_genomes/sarscov2.fa.fai
 
 
+*.bam.bai
+*.tsv
