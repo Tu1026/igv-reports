@@ -1,6 +1,35 @@
-## FAQ For the Wyatt Lab version
+## Wyatt Lab Specific Notes
 
-- Make sure that all of the column names in the melted betastasis don't have spaces in their names. Otherwise passing them through command line will be a pain.
+### Installation
+
+- git clone this repository on to the server
+- cd into the igv-reports directory
+- run `pip install -e .` to install the package
+- run git pull to update the package
+
+### Preparing the input files
+
+- Do the standard betastasis melting
+- Make sure that the melted file has the following columns: Sample_ID CHROM POSITION REF ALT GENE EFFECT Allele_frequency Read_depth (notice only 1 CHROM column)
+- Create a new column called "BAM" and fill it with the url to the bam index file for each sample on the server
+
+### Usage
+
+Simply run the command
+
+```
+create_report mutations_melted.tsv --flanking 30 --genome hg38 --sequence 2 --begin 3 --end 3 --info-columns Sample_ID CHROM   POSITION        REF     ALT     GENE    EFFECT  Allele_frequency   Read_depth --bam 11 --output <your_output.html>
+```
+
+_Notes: The --flanking parameter is the number of bases to show on either side of the mutation. The --genome parameter is the genome build to use. The --sequence parameter is the column number of the sequence (chromosome) column. The --begin parameter is the column number of the start position column. The --end parameter is the column number of the end position column. The --info-columns parameter is a list of the columns to show in the table. The --bam parameter is the column number of the BAM column. The --output parameter is the name of the output file._
+
+#### Once you have the html file
+
+- Press q to blacklist a mutation
+- Press w to ignore a mutation
+- Press e to whitelist a mutation
+- Press b to undo
+- Press s to save the whitelist, blacklist, and a curated list
 
 # igv-reports
 
