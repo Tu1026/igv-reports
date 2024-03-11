@@ -13,7 +13,7 @@
 
 - Do the standard betastasis melting
 - Make sure that the melted file has the following columns: Sample_ID CHROM POSITION REF ALT GENE EFFECT Allele_frequency Read_depth (notice only 1 CHROM column)
-- Create a new column called "BAM" and fill it with the url to the bam index file for each sample on the server
+- Create a new column called "BAM" and fill it with the url to the bam file (.bam not .bam.bai) for each sample on the server
 
 ### Usage
 
