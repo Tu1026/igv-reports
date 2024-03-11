@@ -22,9 +22,9 @@ Simply run the command
 ```
 create_report mutations_melted.tsv https://igv-genepattern-org.s3.amazonaws.com/genomes/seq/hg38/hg38.fa --flanking 30 --sequence 2 --begin 3 --end 3 --info-columns Sample_ID CHROM   POSITION        REF     ALT     GENE    EFFECT  Allele_frequency   Read_depth --bam 11 --output <your_output.html>
 ```
-```
+
 ~~create_report mutations_melted.tsv --flanking 30 --genome hg38 --sequence 2 --begin 3 --end 3 --info-columns Sample_ID CHROM   POSITION        REF     ALT     GENE    EFFECT  Allele_frequency   Read_depth --bam 11 --output <your_output.html>~~
-```
+
 **The genome argument is broken at this moment, use the fasta for now. I still need to fix it in the future.**
 
 > **_NOTE:_**  The command uses 1-based indexing. So 2 is the second column of the table
