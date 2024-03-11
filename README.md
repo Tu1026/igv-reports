@@ -5,6 +5,8 @@
 - git clone this repository onto the server
 - cd into the igv-reports directory
 - run `python setup.py install` to install the package (something is buggy with just `pip install -e .` where entry points are not installed)
+
+#### Update your local version
 - run git pull to update the package and rerun `python setup.py install`
 
 ### Preparing the input files
