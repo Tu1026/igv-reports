@@ -142,6 +142,10 @@
   </head>
 
   <body>
+    <button onclick="save_checkpoint()">Save checkpoint</button>
+    <input type="file" id="csvFile" accept=".csv">
+    <button onclick="load_checkpoint()">Load checkpoint</button>
+
     <div id="tableContainer" class="wrap-collabsible">
       <input id="collapsible" class="toggle" type="checkbox" checked />
       <label for="collapsible" class="lbl-toggle">Variants</label>
@@ -167,6 +171,8 @@ Uncomment for local debugging.  "igv.js" is a soft link to the local igv.js repo
       document.addEventListener("DOMContentLoaded", function () {
         initIGV();
       });
+      var path = window. location. pathname;
+      var page = path. split("/"). pop();
 
       function initIGV() {
         var igvDiv;
@@ -183,6 +189,69 @@ Uncomment for local debugging.  "igv.js" is a soft link to the local igv.js repo
           igvBrowser = b;
           initTable();
         });
+      }
+
+      function save_checkpoint() {
+        // Create an array to store the id and class of each row
+        var data = [];
+
+        // Get all the rows in the table
+        var rows = document.getElementsByTagName('tr');
+
+        // Loop through the rows
+        for (var i = 0; i < rows.length; i++) {
+          // Check if the id of the row starts with 'row_'
+          if (rows[i].id && rows[i].id.startsWith('row_')) {
+            // Get the id and class of the row
+            var rowId = rows[i].id;
+            var rowClass = rows[i].className;
+
+            // Add the id and class to the data array
+            data.push([rowId, rowClass]);
+          }
+        }
+
+        // Convert the data array to a CSV string
+        var csv = 'id,class\n' + data.map(row => row.join(',')).join('\n');
+
+        // Create a Blob object from the CSV string
+        var blob = new Blob([csv], {type: 'text/csv'});
+
+        // Create a link element
+        var link = document.createElement('a');
+
+        // Set the href and download attributes of the link
+        link.href = URL.createObjectURL(blob);
+        link.download = `${page}.csv`;
+
+        // Append the link to the body
+        document.body.appendChild(link);
+
+        // Simulate a click on the link
+        link.click();
+
+        // Remove the link from the body
+        document.body.removeChild(link);
+      }
+
+      function load_checkpoint() {
+        var fileInput = document.getElementById('csvFile');
+        var file = fileInput.files[0];
+        var reader = new FileReader();
+      
+        reader.onload = function(e) {
+          var contents = e.target.result;
+          var data = contents.split('\n').slice(1).map(row => row.split(','));
+      
+          for (const [id, className] of data) {
+            var row = document.getElementById(id);
+            if (row) {
+              row.className = className;
+            }
+          }
+        };
+      
+        reader.readAsText(file);
       }
 
       function initTable() {
