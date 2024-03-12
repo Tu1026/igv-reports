@@ -1,25 +1,23 @@
 from igv_reports import feature
+import os
 
 def get_track_json_dict(filename):
-
     name = get_name(filename)
     format = feature.infer_format(filename)
     # Note: CRAM files are output in BAM format
-    if format == 'cram':
-        format = 'bam'
+    if format == "cram":
+        format = "bam"
     # Note: BCF files are output in VCF format
-    if format == 'bcf':
-        format = 'vcf'
+    if format == "bcf":
+        format = "vcf"
+
+    ## Speed up by checking if file already exists in current directory
+    # if os.path.exists(name)
     type = get_track_type(format)
-    return {
-        "name": name,
-        "url": filename,
-        "type": type,
-        "format": format
-    }
+    return {"name": name, "url": filename, "type": type, "format": format}
+
 
 def get_name(filename):
-
     idx = filename.rfind("/")
     if idx < 0:
         idx = filename.rfind("\\")
@@ -51,6 +49,10 @@ def get_track_type(format):
         "bcf": "variant",
         "vcf": "variant",
         "wig": "wig",
-        "bedgraph": "wig"
+        "bedgraph": "wig",
+        "maf": "mut"
     }
-    return dict[format]
+    return dict[format] if format in dict else None
+
+def is_format_supported(format):
+    return get_track_type(format) is not None

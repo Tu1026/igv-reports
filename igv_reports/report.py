@@ -15,7 +15,7 @@ from igv_reports.feature import MockReader
 from igv_reports.fasta import FastaReader
 from igv_reports.ideogram import IdeogramReader
 from igv_reports.genome import get_genome
-
+from igv_reports.tracks import get_track_type, is_format_supported
 '''
 Create an html report.  This is the main function for the application.
 '''
@@ -65,8 +65,15 @@ def create_report(args):
             args.ideogram = genome["cytobandURL"]
         if "tracks" in genome:
             for config in genome["tracks"]:
-                trackjson.append(config)
-
+                if "format" not in config and "url in c":
+                    config["format"] = feature.infer_format(config["url"])
+                if is_format_supported(config["format"]):
+                    if "type" not in config:
+                        config["type"] = get_track_type(config["format"])
+                    trackjson.append(config)
+                else:
+                    print("File format: " + config["format"] + " is not supported. Skipping track '" + config["name"] + "'.")
+                    
     if args.tracks is not None:
         for track in args.tracks:
            trackjson.append(tracks.get_track_json_dict(track))
