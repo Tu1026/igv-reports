@@ -13,15 +13,20 @@
 
 - Do the standard betastasis melting
 - Make sure that the melted file has the following columns: Sample_ID CHROM POSITION REF ALT GENE EFFECT Allele_frequency Read_depth (notice only 1 CHROM column)
-- Create a new column called "BAM" and fill it with the url to the bam index file for each sample on the server
+- Create a new column called "BAM" and fill it with the url to the bam file (.bam not .bam.bai) for each sample on the server
 
 ### Usage
 
 Simply run the command
 
 ```
-create_report mutations_melted.tsv --flanking 30 --genome hg38 --sequence 2 --begin 3 --end 3 --info-columns Sample_ID CHROM   POSITION        REF     ALT     GENE    EFFECT  Allele_frequency   Read_depth --bam 11 --output <your_output.html>
+create_report mutations_melted.tsv https://igv-genepattern-org.s3.amazonaws.com/genomes/seq/hg38/hg38.fa --flanking 30 --sequence 2 --begin 3 --end 3 --info-columns Sample_ID CHROM   POSITION        REF     ALT     GENE    EFFECT  Allele_frequency   Read_depth --bam 11 --output <your_output.html>
 ```
+
+~~create_report mutations_melted.tsv --flanking 30 --genome hg38 --sequence 2 --begin 3 --end 3 --info-columns Sample_ID CHROM   POSITION        REF     ALT     GENE    EFFECT  Allele_frequency   Read_depth --bam 11 --output <your_output.html>~~
+
+**The genome argument is broken at this moment, use the fasta for now. I still need to fix it in the future.**
+
 > **_NOTE:_**  The command uses 1-based indexing. So 2 is the second column of the table
 
 _Notes: The --flanking parameter is the number of bases to show on either side of the mutation. The --genome parameter is the genome build to use. The --sequence parameter is the column number of the sequence (chromosome) column. The --begin parameter is the column number of the start position column. The --end parameter is the column number of the end position column. The --info-columns parameter is a list of the columns to show in the table. The --bam parameter is the column number of the BAM column. The --output parameter is the name of the output file._
