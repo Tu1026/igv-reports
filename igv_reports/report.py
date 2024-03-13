@@ -333,36 +333,55 @@ def create_report(args):
     # stats.print_all()
     # stats.save('pstat.out', type='callgrind')
     # stats.save('yappi.out')
-        
+    from itertools import repeat
+    #TODO fix the ugly multiprocessing code
     execute_status= []
     cores = args.n_workers
+    n_tasks = len(table.features)
     with mp.Manager() as manager:
+        # sh_session_dict = dict()
         sh_session_dict = manager.dict()
+        # sh_execute_status = list()
         sh_execute_status = manager.list()
-        # with manager.Pool() as pool:
-        i = 0
-        workers = []
-        for tuple in table.features:
-            i += 1
-            if len(workers) == cores:
-                for worker in workers:
-                    worker.join()
-                workers = []
-            p = mp.Process(target=feature_process, args=(i, tuple, sh_session_dict, sh_execute_status, trackconfigs, table, flanking, fasta_reader, ideogram_reader, args))
-            p.start()
-            workers.append(p)
+        with manager.Pool(processes=cores) as pool:
+            # i = 0
+            # sema = mp.Semaphore(cores)
+            # workers = []
+            # for tuple in table.features:
+                # i += 1
+                # if len(workers) == cores:
+                #     for worker in workers:
+                #         worker.join()
+                #     workers = []
+                #     execute_status.extend(list(sh_execute_status))
+                #     session_dict = {**session_dict, **dict(sh_session_dict)}
+                #     sh_execute_status[:] = []
+                #     del sh_session_dict
+                #     sh_session_dict = manager.dict()
+                    
+                # sema.acquire()
+                # p = mp.Process(target=feature_process, args=(i, tuple, sh_session_dict, sh_execute_status, trackconfigs, table, flanking, args))
+                # p.start()
+                # workers.append(p)
+            # if i % cores == 0:
+            #     execute_status.extend(list(sh_execute_status))
+            #     session_dict = {**session_dict, **dict(sh_session_dict)}
+            #     sh_execute_status[:] = []
+            #     del sh_session_dict
+            #     sh_session_dict = manager.dict()
                 # pool.map(feature_process, [i, tuple, sh_session_dict, trackconfigs, table, flanking, fasta_reader, ideogram_reader, args])
-                # results = pool.starmap(feature_process, [i, tuple, sh_session_dict, trackconfigs, table, flanking, fasta_reader])
+                # pool.starmap(feature_process, [i, tuple, sh_session_dict, sh_execute_status, trackconfigs, table, flanking, args])
+            pool.starmap(feature_process, zip(list(range(1, n_tasks+1)), list(table.features), repeat(sh_session_dict), repeat(sh_execute_status), repeat(trackconfigs), repeat(n_tasks), repeat(flanking), repeat(args)))
             # p1.start()
             # p1.join()
-        for worker in workers:
-            worker.join()
+        # for worker in workers:
+        #     worker.join()
         
-        execute_status = list(sh_execute_status)
+        execute_status.extend(list(sh_execute_status))
         session_dict = {**session_dict, **dict(sh_session_dict)}
 
         
-    
+    ## Add error tracking functionality
     with open("error_files.txt", "w") as f:
         for status in execute_status:
             if status[0] == 1:
@@ -447,10 +466,16 @@ def locus_string(chr, start, end):
         return f'{chr}:{start + 1}-{end}'
 
 
-def feature_process(i, tuple,session_dict, sh_execute_status,trackconfigs, table, flanking, fasta_reader, ideogram_reader, args):
+def feature_process(i, tuple,session_dict, sh_execute_status,trackconfigs, n_tasks, flanking, args):
+    # Other readers
+    fasta_reader = FastaReader(args.fasta)
+    if (args.ideogram):
+        ideogram_reader = IdeogramReader(args.ideogram)
+    else:
+        ideogram_reader = None
     result = [0, ""]
     try: 
-        print(f"Working on variant {i}/{len(table.features)}")
+        print(f"Working on variant {i}/{n_tasks}")
 
         feature = tuple[0]
         unique_id = tuple[1]
@@ -605,12 +630,14 @@ def feature_process(i, tuple,session_dict, sh_execute_status,trackconfigs, table
             #     trackconfigs = trackconfigs[:-1]
             
     except Exception as e:
+        print("Error in feature_process")
         import traceback
-        result = [1, str(e), traceback.format_exc()]
+        result = [1, str(e), traceback.format_exc(), f"Variant {i}/{n_tasks} failed"]
     
-    print(f"Done with variant {i}/{len(table.features)}")
+    print(f"Done with variant {i}/{n_tasks}")
 
     sh_execute_status.append(result)
+    # sema.release()
     # return result
 
 def main():
