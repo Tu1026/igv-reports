@@ -673,7 +673,7 @@ def main():
                         default=None)
     parser.add_argument("--idlink", type=str, help="url link template for the VCF ID column")
     parser.add_argument("--exclude-flags", type=int, help="Passed to samtools to filter alignments.  For BAM and CRAM files.", default=1536)
-    parser.add_argument("--n_workers", type=int, help="Numer of processes to work on at the same time (use something like 100-200 on the server if you are in a rush)", default=20)
+    parser.add_argument("--n_workers", type=int, help="Numer of processes to work on at the same time (use something like 100-200 on the server if you are in a rush)", default=12)
     args = parser.parse_args()
     create_report(args)
 
