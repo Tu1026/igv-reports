@@ -16,6 +16,13 @@ from igv_reports.fasta import FastaReader
 from igv_reports.ideogram import IdeogramReader
 from igv_reports.genome import get_genome
 from igv_reports.tracks import get_track_type, is_format_supported
+import asyncio
+import threading
+import yappi
+
+### Speed things up with Async
+
+
 '''
 Create an html report.  This is the main function for the application.
 '''
@@ -109,157 +116,223 @@ def create_report(args):
     if args.flanking is not None:
         flanking = float(args.flanking)
 
-    i = 0
-    for tuple in table.features:
-        i += 1
-        print(f"Working on variant {i}/{len(table.features)}")
+  
 
-        feature = tuple[0]
-        unique_id = tuple[1]
+    async def async_feature_process(i, tuple,execute_status,session_dict, lock_td):
+        result = [0, ""]
+        try: 
+            print(f"Working on variant {i}/{len(table.features)}")
 
-        # If a variant feature (=> row in the table) has an explicit session id use it, otherwise use the row id (i.e. unique_id)
-        if hasattr(feature, "session_id"):
-            session_id = feature.session_id
-        else:
-            session_id = str(unique_id)
+            feature = tuple[0]
+            unique_id = tuple[1]
 
-        if session_id not in session_dict:
-
-            # Placeholder variable for possible second region (bedpe files)
-            region2 = None
-
-            # Define a genomic region around the variant
-            if hasattr(feature, "viewport"):
-                region = parse_region(feature.viewport)
-                chr = region["chr"]
-                start = region["start"]
-                end = region["end"]
+            # If a variant feature (=> row in the table) has an explicit session id use it, otherwise use the row id (i.e. unique_id)
+            if hasattr(feature, "session_id"):
+                session_id = feature.session_id
             else:
-                chr = feature.chr
-                start = int(math.floor(feature.start - flanking / 2))
-                start = max(start, 1)  # bound start to 1
-                end = int(math.ceil(feature.end + flanking / 2))
-                region = {
-                    "chr": chr,
-                    "start": start,
-                    "end": end
-                }
+                session_id = str(unique_id)
+                
 
-                # If feature has a second locus (bedpe file) create the region here.
-                if hasattr(feature, 'chr2') and feature.chr2 is not None:
-                    chr2 = feature.chr2
-                    start2 = int(math.floor(feature.start2 - flanking / 2))
-                    start2 = max(start2, 1)  # bound start to 1
-                    end2 = int(math.ceil(feature.end2 + flanking / 2))
-                    region2 = {
-                        "chr": chr2,
-                        "start": start2,
-                        "end": end2
+            if session_id not in session_dict:
+
+                # Placeholder variable for possible second region (bedpe files)
+                region2 = None
+
+                # Define a genomic region around the variant
+                if hasattr(feature, "viewport"):
+                    region = parse_region(feature.viewport)
+                    chr = region["chr"]
+                    start = region["start"]
+                    end = region["end"]
+                else:
+                    chr = feature.chr
+                    start = int(math.floor(feature.start - flanking / 2))
+                    start = max(start, 1)  # bound start to 1
+                    end = int(math.ceil(feature.end + flanking / 2))
+                    region = {
+                        "chr": chr,
+                        "start": start,
+                        "end": end
                     }
 
-            # Fasta
-            data = fasta_reader.slice(region)
-            fa = '>' + chr + ':' + str(start) + '-' + str(end) + '\n' + data
+                    # If feature has a second locus (bedpe file) create the region here.
+                    if hasattr(feature, 'chr2') and feature.chr2 is not None:
+                        chr2 = feature.chr2
+                        start2 = int(math.floor(feature.start2 - flanking / 2))
+                        start2 = max(start2, 1)  # bound start to 1
+                        end2 = int(math.ceil(feature.end2 + flanking / 2))
+                        region2 = {
+                            "chr": chr2,
+                            "start": start2,
+                            "end": end2
+                        }
 
-            if region2 is not None:
-                data2 = fasta_reader.slice(region2)
-                fa += '\n' + '>' + chr2 + ':' + str(start2) + '-' + str(end2) + '\n' + data2
+                # Fasta
+                lock_td.acquire()
+                # data = fasta_reader.slice(region)
+                data = await asyncio.to_thread(fasta_reader.slice(region))
+                lock_td.release()
+                fa = '>' + chr + ':' + str(start) + '-' + str(end) + '\n' + data
 
-            fasta_uri = datauri.get_data_uri(fa)
-            fastaJson = {
-                "fastaURL": fasta_uri,
-            }
-
-            # Ideogram
-            if (args.ideogram):
-                ideo_string = ideogram_reader.get_data(region["chr"])
                 if region2 is not None:
-                    ideo_string += ideogram_reader.get_data(region2["chr"])
-                ideo_uri = datauri.get_data_uri(ideo_string)
-                fastaJson["cytobandURL"] = ideo_uri
+                    lock_td.acquire()
+                    data2 = fasta_reader.slice(region2)
+                    lock_td.release()
+                    fa += '\n' + '>' + chr2 + ':' + str(start2) + '-' + str(end2) + '\n' + data2
 
-            # Initial locus
-            if (hasattr(feature, "viewport")):
-                initial_locus = feature.viewport
-            else:
-                initial_locus = locus_string(feature.chr, feature.start, feature.end)
-                if region2 is not None:
-                    initial_locus += f' {locus_string(feature.chr2, feature.start2, feature.end2)}'
+                fasta_uri = datauri.get_data_uri(fa)
+                fastaJson = {
+                    "fastaURL": fasta_uri,
+                }
 
-            session_json = {
-                "locus": initial_locus,
-                "reference": fastaJson,
-                "tracks": []
-            }
+                # Ideogram
+                if (args.ideogram):
+                    ideo_string = ideogram_reader.get_data(region["chr"])
+                    if region2 is not None:
+                        ideo_string += ideogram_reader.get_data(region2["chr"])
+                    ideo_uri = datauri.get_data_uri(ideo_string)
+                    fastaJson["cytobandURL"] = ideo_uri
 
-            if args.bam is not None:
-                config = tracks.get_track_json_dict(feature.bam)
-                try:
+                # Initial locus
+                if (hasattr(feature, "viewport")):
+                    initial_locus = feature.viewport
+                else:
+                    initial_locus = locus_string(feature.chr, feature.start, feature.end)
+                    if region2 is not None:
+                        initial_locus += f' {locus_string(feature.chr2, feature.start2, feature.end2)}'
+
+                session_json = {
+                    "locus": initial_locus,
+                    "reference": fastaJson,
+                    "tracks": []
+                }
+
+                if args.bam is not None:
+                    config = tracks.get_track_json_dict(feature.bam)
                     reader = utils.getreader(config, None, args)
                     trackconfigs.append({
                         "config": config,
                         "reader": reader
                     })
-                except Exception as e:
-                    print(e)
-                    continue
 
-            track_objects = []
-            # Loop through user supplied track configs
-            # "cram" input format is converted to "bam" for output track configs
-            for tc in trackconfigs:
-                trackobj = tc["config"];
+                track_objects = []
+                # Loop through user supplied track configs
+                # "cram" input format is converted to "bam" for output track configs
+                for tc in trackconfigs:
+                    trackobj = tc["config"];
 
-                # Set some defaults if not specified
-                if "url" in trackobj:
-                    default_trackobj = tracks.get_track_json_dict(trackobj["url"]);
-                    if "type" not in trackobj:
-                        trackobj["type"] = default_trackobj["type"]
-                    if "format" not in trackobj:
-                        trackobj["format"] = default_trackobj["format"]
-                    if trackobj["format"] == "cram":
-                        trackobj["format"] = "bam"
-                    if "name" not in trackobj:
-                        trackobj["name"] = default_trackobj["url"]
+                    # Set some defaults if not specified
+                    if "url" in trackobj:
+                        default_trackobj = tracks.get_track_json_dict(trackobj["url"]);
+                        if "type" not in trackobj:
+                            trackobj["type"] = default_trackobj["type"]
+                        if "format" not in trackobj:
+                            trackobj["format"] = default_trackobj["format"]
+                        if trackobj["format"] == "cram":
+                            trackobj["format"] = "bam"
+                        if "name" not in trackobj:
+                            trackobj["name"] = default_trackobj["url"]
 
-                # Indexes are not used with data URIs
-                if "indexURL" in trackobj:
-                    del trackobj["indexURL"]
+                    # Indexes are not used with data URIs
+                    if "indexURL" in trackobj:
+                        del trackobj["indexURL"]
 
-                reader = tc["reader"]
-                data = reader.slice(region, region2)
-                trackobj["url"] = datauri.get_data_uri(data)
-                track_objects.append(trackobj)
+                    reader = tc["reader"]
+                    # data = reader.slice(region, region2)
+                    data = await asyncio.to_thread(reader.slice, region, region2)
+                    trackobj["url"] = datauri.get_data_uri(data)
+                    track_objects.append(trackobj)
 
-            track_order = 1
-            for trackobj in track_objects:
-                if (trackobj["type"] == "alignment"):
-                    trackobj["height"] = 500
-                    is_snv = feature.end - feature.start == 1
-                    if (trackobj["type"]) == "alignment" and (args.sort is not None or is_snv) and (
-                            args.sort != 'NONE'):
-                        sort_option = 'BASE' if args.sort is None else args.sort.upper()
-                        trackobj["sort"] = {
-                            "option": sort_option,
-                            "chr": chr,
-                            "position": str(feature.start + 1),
-                            "direction": "ASC"
-                        }
-                if "order" not in trackobj:
-                    trackobj["order"] = track_order
-                session_json["tracks"].append(trackobj)
-                track_order += 1
+                track_order = 1
+                for trackobj in track_objects:
+                    if (trackobj["type"] == "alignment"):
+                        trackobj["height"] = 500
+                        is_snv = feature.end - feature.start == 1
+                        if (trackobj["type"]) == "alignment" and (args.sort is not None or is_snv) and (
+                                args.sort != 'NONE'):
+                            sort_option = 'BASE' if args.sort is None else args.sort.upper()
+                            trackobj["sort"] = {
+                                "option": sort_option,
+                                "chr": chr,
+                                "position": str(feature.start + 1),
+                                "direction": "ASC"
+                            }
+                    if "order" not in trackobj:
+                        trackobj["order"] = track_order
+                    session_json["tracks"].append(trackobj)
+                    track_order += 1
 
-            # Build the session data URI
-
-            session_string = json.dumps(session_json)
-            session_uri = datauri.get_data_uri(session_string)
-            session_dict[session_id] = session_uri
+                # Build the session data URI
+                session_string = json.dumps(session_json)
+                session_uri = datauri.get_data_uri(session_string)
+                # try:
+                session_dict[session_id] = session_uri
+  
+                
+                ## Remove the last track if it is a bam file
+                if args.bam is not None:
+                    trackconfigs = trackconfigs[:-1]
+                
+        except Exception as e:
+            result = [1, str(e), feature]
             
-            ## Remove the last track if it is a bam file
-            if args.bam is not None:
-                trackconfigs = trackconfigs[:-1]
 
+        execute_status.append(result)
+ 
+    
+    def thread_worker(tasks):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(asyncio.gather(*tasks))
+        loop.close()                
+        
+    i = 0
+    lock_td = threading.Lock()  # Create a lock
+    execute_status= []
+    thread_pool = []
+    tasks = []
+    for tuple in table.features:
+        i += 1
+        tasks.append(async_feature_process(i, tuple, execute_status,session_dict, lock_td))
+    
+    
+    n_threads = 6
+    n = len(table.features)
+    chunk_size = round(n / n_threads )
+    print(f"Chunk size: {chunk_size}")
+    chunks = [tasks[i:i+chunk_size] for i in range(0, len(tasks), chunk_size)]
+    for chunk in chunks:
+        thread = threading.Thread(target=thread_worker, args=(chunk,))
+        thread_pool.append(thread)
+        thread.start()
+    for thread in thread_pool:
+        thread.join()
+    # Start profiling
+    
+    # yappi.set_clock_type("wall")  # Use CPU time for profiling
+    # yappi.start()/
+    
+    # loop = asyncio.new_event_loop()
+    # asyncio.set_event_loop(loop)
+    # loop.run_until_complete(asyncio.gather(*tasks))
+    # loop.close()
+    # Stop profiling
+    # yappi.stop()
+
+    # Print profiling statistics
+    # stats = yappi.get_func_stats()
+    # text = stats.print_all()
+    # stats.save('pstat.out', type='pstat')
+    # stats.save('yappi.out')
+        
+    with open("error_files.txt", "w") as f:
+        for status in execute_status:
+            if status[0] == 1:
+                f.write(f"Error: {status[1]} \n")
+                f.write(f"Feature: {status[2]} \n")
+                f.write("\n")
+            
+        
     session_dict = json.dumps(session_dict)
 
     template_file = args.template
