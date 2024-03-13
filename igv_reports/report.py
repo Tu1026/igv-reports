@@ -19,7 +19,8 @@ from igv_reports.tracks import get_track_type, is_format_supported
 import asyncio
 import threading
 import sys
-import yappi
+import multiprocessing as mp
+
 ### Speed things up with Async
 
 
@@ -334,8 +335,7 @@ def create_report(args):
     # stats.save('yappi.out')
         
     execute_status= []
-    cores = 37
-    import multiprocessing as mp
+    cores = args.n_workers
     with mp.Manager() as manager:
         sh_session_dict = manager.dict()
         sh_execute_status = manager.list()
@@ -646,6 +646,7 @@ def main():
                         default=None)
     parser.add_argument("--idlink", type=str, help="url link template for the VCF ID column")
     parser.add_argument("--exclude-flags", type=int, help="Passed to samtools to filter alignments.  For BAM and CRAM files.", default=1536)
+    parser.add_argument("--n_workers", type=int, help="Numer of processes to work on at the same time (use something like 100-200 on the server if you are in a rush)", default=20)
     args = parser.parse_args()
     create_report(args)
 
