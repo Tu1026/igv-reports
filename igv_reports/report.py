@@ -18,8 +18,8 @@ from igv_reports.genome import get_genome
 from igv_reports.tracks import get_track_type, is_format_supported
 import asyncio
 import threading
+import sys
 import yappi
-
 ### Speed things up with Async
 
 
@@ -118,7 +118,7 @@ def create_report(args):
 
   
 
-    async def async_feature_process(i, tuple,execute_status,session_dict, lock_td):
+    async def async_feature_process(i, tuple,execute_status,session_dict, trackconfigs, lock_td):
         result = [0, ""]
         try: 
             print(f"Working on variant {i}/{len(table.features)}")
@@ -169,15 +169,19 @@ def create_report(args):
 
                 # Fasta
                 lock_td.acquire()
-                # data = fasta_reader.slice(region)
-                data = await asyncio.to_thread(fasta_reader.slice(region))
+                # print("1")
+                # print(region)
+                data = fasta_reader.slice(region)
+                # data = await asyncio.to_thread(fasta_reader.slice, region)
+                # await data_task
+                # await asyncio.gather(asyncio.to_thread(fasta_reader.slice(region)))
                 lock_td.release()
                 fa = '>' + chr + ':' + str(start) + '-' + str(end) + '\n' + data
 
                 if region2 is not None:
-                    lock_td.acquire()
+                    # lock_td.acquire()
                     data2 = fasta_reader.slice(region2)
-                    lock_td.release()
+                    # lock_td.release()
                     fa += '\n' + '>' + chr2 + ':' + str(start2) + '-' + str(end2) + '\n' + data2
 
                 fasta_uri = datauri.get_data_uri(fa)
@@ -206,11 +210,12 @@ def create_report(args):
                     "reference": fastaJson,
                     "tracks": []
                 }
-
+                
+                trackconf = []
                 if args.bam is not None:
                     config = tracks.get_track_json_dict(feature.bam)
                     reader = utils.getreader(config, None, args)
-                    trackconfigs.append({
+                    trackconf.append({
                         "config": config,
                         "reader": reader
                     })
@@ -218,7 +223,7 @@ def create_report(args):
                 track_objects = []
                 # Loop through user supplied track configs
                 # "cram" input format is converted to "bam" for output track configs
-                for tc in trackconfigs:
+                for tc in [*trackconfigs, *trackconf]:
                     trackobj = tc["config"];
 
                     # Set some defaults if not specified
@@ -269,50 +274,53 @@ def create_report(args):
                 session_dict[session_id] = session_uri
   
                 
-                ## Remove the last track if it is a bam file
-                if args.bam is not None:
-                    trackconfigs = trackconfigs[:-1]
+                # ## Remove the last track if it is a bam file
+                # if args.bam is not None:
+                #     trackconfigs = trackconfigs[:-1]
                 
         except Exception as e:
-            result = [1, str(e), feature]
-            
+            import traceback
+            result = [1, str(e), traceback.format_exc()]
+        
+        print(f"Done with variant {i}/{len(table.features)}")
 
         execute_status.append(result)
  
-    
+
     def thread_worker(tasks):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(asyncio.gather(*tasks))
         loop.close()                
         
-    i = 0
-    lock_td = threading.Lock()  # Create a lock
-    execute_status= []
-    thread_pool = []
-    tasks = []
-    for tuple in table.features:
-        i += 1
-        tasks.append(async_feature_process(i, tuple, execute_status,session_dict, lock_td))
+    # i = 0
+    # lock_td = threading.Lock()  # Create a lock
+    # execute_status= []
+    # thread_pool = []
+    # tasks = []
+    # for tuple in table.features:
+    #     i += 1
+    #     tasks.append(async_feature_process(i, tuple, execute_status,session_dict, trackconfigs, lock_td))
     
     
-    n_threads = 6
-    n = len(table.features)
-    chunk_size = round(n / n_threads )
-    print(f"Chunk size: {chunk_size}")
-    chunks = [tasks[i:i+chunk_size] for i in range(0, len(tasks), chunk_size)]
-    for chunk in chunks:
-        thread = threading.Thread(target=thread_worker, args=(chunk,))
-        thread_pool.append(thread)
-        thread.start()
-    for thread in thread_pool:
-        thread.join()
+    # n_threads = 1
+    # n = len(table.features)
+    # chunk_size = round(n / n_threads )
+    # print(f"Chunk size: {chunk_size}")
+    # chunks = [tasks[i:i+chunk_size] for i in range(0, len(tasks), chunk_size)]
+    # yappi.set_clock_type("wall")  # Use CPU time for profiling
+    # yappi.start()
+    # for chunk in chunks:
+    #     thread = threading.Thread(target=thread_worker, args=(chunk,))
+    #     thread_pool.append(thread)
+    #     thread.start()
+    # for thread in thread_pool:
+    #     thread.join()
     # Start profiling
     
-    # yappi.set_clock_type("wall")  # Use CPU time for profiling
-    # yappi.start()/
-    
+
     # loop = asyncio.new_event_loop()
+    # loop.set_debug(True)
     # asyncio.set_event_loop(loop)
     # loop.run_until_complete(asyncio.gather(*tasks))
     # loop.close()
@@ -321,10 +329,40 @@ def create_report(args):
 
     # Print profiling statistics
     # stats = yappi.get_func_stats()
-    # text = stats.print_all()
-    # stats.save('pstat.out', type='pstat')
+    # stats.print_all()
+    # stats.save('pstat.out', type='callgrind')
     # stats.save('yappi.out')
         
+    execute_status= []
+    cores = 37
+    import multiprocessing as mp
+    with mp.Manager() as manager:
+        sh_session_dict = manager.dict()
+        sh_execute_status = manager.list()
+        # with manager.Pool() as pool:
+        i = 0
+        workers = []
+        for tuple in table.features:
+            i += 1
+            if len(workers) == cores:
+                for worker in workers:
+                    worker.join()
+                workers = []
+            p = mp.Process(target=feature_process, args=(i, tuple, sh_session_dict, sh_execute_status, trackconfigs, table, flanking, fasta_reader, ideogram_reader, args))
+            p.start()
+            workers.append(p)
+                # pool.map(feature_process, [i, tuple, sh_session_dict, trackconfigs, table, flanking, fasta_reader, ideogram_reader, args])
+                # results = pool.starmap(feature_process, [i, tuple, sh_session_dict, trackconfigs, table, flanking, fasta_reader])
+            # p1.start()
+            # p1.join()
+        for worker in workers:
+            worker.join()
+        
+        execute_status = list(sh_execute_status)
+        session_dict = {**session_dict, **dict(sh_session_dict)}
+
+        
+    
     with open("error_files.txt", "w") as f:
         for status in execute_status:
             if status[0] == 1:
@@ -332,8 +370,10 @@ def create_report(args):
                 f.write(f"Feature: {status[2]} \n")
                 f.write("\n")
             
-        
+    print("start dumping")
     session_dict = json.dumps(session_dict)
+    print("finished dumping")
+    
 
     template_file = args.template
     if None == template_file:
@@ -406,6 +446,172 @@ def locus_string(chr, start, end):
     else:
         return f'{chr}:{start + 1}-{end}'
 
+
+def feature_process(i, tuple,session_dict, sh_execute_status,trackconfigs, table, flanking, fasta_reader, ideogram_reader, args):
+    result = [0, ""]
+    try: 
+        print(f"Working on variant {i}/{len(table.features)}")
+
+        feature = tuple[0]
+        unique_id = tuple[1]
+
+        # If a variant feature (=> row in the table) has an explicit session id use it, otherwise use the row id (i.e. unique_id)
+        if hasattr(feature, "session_id"):
+            session_id = feature.session_id
+        else:
+            session_id = str(unique_id)
+            
+
+        if session_id not in session_dict:
+
+            # Placeholder variable for possible second region (bedpe files)
+            region2 = None
+
+            # Define a genomic region around the variant
+            if hasattr(feature, "viewport"):
+                region = parse_region(feature.viewport)
+                chr = region["chr"]
+                start = region["start"]
+                end = region["end"]
+            else:
+                chr = feature.chr
+                start = int(math.floor(feature.start - flanking / 2))
+                start = max(start, 1)  # bound start to 1
+                end = int(math.ceil(feature.end + flanking / 2))
+                region = {
+                    "chr": chr,
+                    "start": start,
+                    "end": end
+                }
+
+                # If feature has a second locus (bedpe file) create the region here.
+                if hasattr(feature, 'chr2') and feature.chr2 is not None:
+                    chr2 = feature.chr2
+                    start2 = int(math.floor(feature.start2 - flanking / 2))
+                    start2 = max(start2, 1)  # bound start to 1
+                    end2 = int(math.ceil(feature.end2 + flanking / 2))
+                    region2 = {
+                        "chr": chr2,
+                        "start": start2,
+                        "end": end2
+                    }
+
+            # Fasta
+            # print("1")
+            # print(region)
+            data = fasta_reader.slice(region)
+            # data = await asyncio.to_thread(fasta_reader.slice, region)
+            # await data_task
+            # await asyncio.gather(asyncio.to_thread(fasta_reader.slice(region)))
+            fa = '>' + chr + ':' + str(start) + '-' + str(end) + '\n' + data
+
+            if region2 is not None:
+                # lock_td.acquire()
+                data2 = fasta_reader.slice(region2)
+                # lock_td.release()
+                fa += '\n' + '>' + chr2 + ':' + str(start2) + '-' + str(end2) + '\n' + data2
+
+            fasta_uri = datauri.get_data_uri(fa)
+            fastaJson = {
+                "fastaURL": fasta_uri,
+            }
+
+            # Ideogram
+            if (args.ideogram):
+                ideo_string = ideogram_reader.get_data(region["chr"])
+                if region2 is not None:
+                    ideo_string += ideogram_reader.get_data(region2["chr"])
+                ideo_uri = datauri.get_data_uri(ideo_string)
+                fastaJson["cytobandURL"] = ideo_uri
+
+            # Initial locus
+            if (hasattr(feature, "viewport")):
+                initial_locus = feature.viewport
+            else:
+                initial_locus = locus_string(feature.chr, feature.start, feature.end)
+                if region2 is not None:
+                    initial_locus += f' {locus_string(feature.chr2, feature.start2, feature.end2)}'
+
+            session_json = {
+                "locus": initial_locus,
+                "reference": fastaJson,
+                "tracks": []
+            }
+            
+            trackconf = []
+            if args.bam is not None:
+                config = tracks.get_track_json_dict(feature.bam)
+                reader = utils.getreader(config, None, args)
+                trackconf.append({
+                    "config": config,
+                    "reader": reader
+                })
+
+            track_objects = []
+            # Loop through user supplied track configs
+            # "cram" input format is converted to "bam" for output track configs
+            for tc in [*trackconfigs, *trackconf]:
+                trackobj = tc["config"];
+
+                # Set some defaults if not specified
+                if "url" in trackobj:
+                    default_trackobj = tracks.get_track_json_dict(trackobj["url"]);
+                    if "type" not in trackobj:
+                        trackobj["type"] = default_trackobj["type"]
+                    if "format" not in trackobj:
+                        trackobj["format"] = default_trackobj["format"]
+                    if trackobj["format"] == "cram":
+                        trackobj["format"] = "bam"
+                    if "name" not in trackobj:
+                        trackobj["name"] = default_trackobj["url"]
+
+                # Indexes are not used with data URIs
+                if "indexURL" in trackobj:
+                    del trackobj["indexURL"]
+
+                reader = tc["reader"]
+                data = reader.slice(region, region2)
+                trackobj["url"] = datauri.get_data_uri(data)
+                track_objects.append(trackobj)
+
+            track_order = 1
+            for trackobj in track_objects:
+                if (trackobj["type"] == "alignment"):
+                    trackobj["height"] = 500
+                    is_snv = feature.end - feature.start == 1
+                    if (trackobj["type"]) == "alignment" and (args.sort is not None or is_snv) and (
+                            args.sort != 'NONE'):
+                        sort_option = 'BASE' if args.sort is None else args.sort.upper()
+                        trackobj["sort"] = {
+                            "option": sort_option,
+                            "chr": chr,
+                            "position": str(feature.start + 1),
+                            "direction": "ASC"
+                        }
+                if "order" not in trackobj:
+                    trackobj["order"] = track_order
+                session_json["tracks"].append(trackobj)
+                track_order += 1
+
+            # Build the session data URI
+            session_string = json.dumps(session_json)
+            session_uri = datauri.get_data_uri(session_string)
+            # try:
+            session_dict[session_id] = session_uri
+
+            
+            # ## Remove the last track if it is a bam file
+            # if args.bam is not None:
+            #     trackconfigs = trackconfigs[:-1]
+            
+    except Exception as e:
+        import traceback
+        result = [1, str(e), traceback.format_exc()]
+    
+    print(f"Done with variant {i}/{len(table.features)}")
+
+    sh_execute_status.append(result)
+    # return result
 
 def main():
     parser = argparse.ArgumentParser()
