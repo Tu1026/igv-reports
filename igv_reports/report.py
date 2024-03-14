@@ -142,7 +142,7 @@ def create_report(args):
 
             for i, f in enumerate(futures):
                 try:
-                    results.append(future.get(TIMEOUT_SECONDS))
+                    results.append(future.result(TIMEOUT_SECONDS))
                 except TimeoutError:
                     execute_status.append([f"{i}th variant failed because it timed out after {TIMEOUT_SECONDS} seconds"])
                 except Exception as error:
