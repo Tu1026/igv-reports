@@ -23,6 +23,7 @@ import multiprocessing as mp
 from itertools import repeat
 from pebble import ProcessPool,ProcessExpired
 from pathlib import Path
+import traceback
 ### Speed things up with Async
 
 
@@ -147,7 +148,7 @@ def create_report(args):
                     execute_status.append([f"{i}th variant failed because it timed out after {TIMEOUT_SECONDS} seconds"])
                 except Exception as error:
                     print("function raised %s" % error)
-                    print(error.__traceback__)  # Python's traceback of remote process
+                    print(traceback.format_exc())  # Python's traceback of remote process
                     execute_status.append([f"{i}th variant failed because of an error"])
 
                 # execute_status.extend(list(sh_execute_status))
@@ -190,8 +191,10 @@ def create_report(args):
     with open(output_folder.joinpath("error_files.txt"), "w") as f:
         for status in execute_status:
             if status[0] == 1:
-                f.write(f"Error: {status[1]} \n")
-                f.write(f"Feature: {status[2]} \n")
+                # f.write(f"Error: {status[1]} \n")
+                f.write(f"Traceback: {status[2]} \n")
+                f.write(f"Variant: {status[3]} \n")
+                f.write(f"Failed_feature: {str(status[4])} \n")
                 f.write("\n")
             
     # session_dict = json.dumps(session_dict)
@@ -266,8 +269,8 @@ def task_done(future):
     except TimeoutError as error:
         print("Function took longer than %d seconds" % error.args[1])
     except Exception as error:
-        print("Function raised %s" % error)
-        print(error.__traceback__)  # traceback of the function
+        print(f"Function raised {error}")
+        error.__traceback__.print_tb()  # traceback of the function
         
 def inline_script(line, o, source_type):
     # <script type="text/javascript" src="https://igv.org/web/test/dist/igv.min.js"></script>
@@ -457,7 +460,7 @@ def feature_process(i, tuple,session_dict, sh_execute_status,trackconfigs, n_tas
     except Exception as e:
         print("Error in feature_process")
         import traceback
-        result = [1, str(e), traceback.format_exc(), f"Variant {i}/{n_tasks} failed"]
+        result = [1, str(e), traceback.format_exc(), f"Variant {i}/{n_tasks} failed", feature]
     
     print(f"Done with variant {i}/{n_tasks}")
 
