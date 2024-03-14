@@ -18,7 +18,7 @@
     <title>IGV Variant Inspector</title>
 
     <!-- igv -->
-    <script src="https://cdn.jsdelivr.net/npm/igv@2.13.11/dist/igv.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/igv@2.15.9/dist/igv.min.js"></script>
 
     <style type="text/css">
       body {
@@ -138,19 +138,68 @@
         border-bottom-right-radius: 7px;
         padding: 0.5rem 1rem;
       }
+      .button-container {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 20px;
+      }
+      .button {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: #ffffff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      .button:hover {
+        background-color: #0056b3;
+      }
+      h2 {
+        margin-bottom: 10px;
+      }
+      .custom-file-input {
+        display: none; /* Hide the default file input */
+      }
+      .custom-file-label {
+        padding: 10px 20px;
+        background-color: #ccc; /* Default color when no file is selected */
+        color: #ffffff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      .custom-file-label:hover {
+        background-color: #0056b3; /* Change color on hover */
+      }
+      .file-selected {
+        background-color: #2ecc71 !important; /* Green color when a file is selected */
+      }
+      .custom-folder-label {
+        padding: 10px 20px;
+        background-color: #fd0000; /* Default color when no file is selected */
+        color: #ffffff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
     </style>
   </head>
 
   <body>
-    <button onclick="save_checkpoint()">Save checkpoint</button>
-    <input type="file" id="csvFile" accept=".csv">
-    <button onclick="load_checkpoint()">Load checkpoint</button>
-
-    <div id="tableContainer" class="wrap-collabsible">
-      <input id="collapsible" class="toggle" type="checkbox" checked />
-      <label for="collapsible" class="lbl-toggle">Variants</label>
-      <div class="collapsible-content">
-        <div id="tableSelectorDiv"></div>
+    <div class="button-container">
+      <div>
+        <h2>Load / Save Checkpoints</h2>
+        <button class="button" onclick="save_checkpoint()">Save checkpoint</button>
+        <input type="file" id="csvFile" accept=".csv" class="custom-file-input" onchange="updateFileLabel(this)">
+        <label for="csvFile" class="custom-file-label" id="fileLabel">Select File</label>
+        <button class="button" onclick="load_checkpoint()">Load checkpoint</button>
+      </div>
+      <div>
+        <h2>Select Folder</h2>
+        <input type="file" id="folderSelector" webkitdirectory directory multiple />
       </div>
     </div>
 
@@ -168,6 +217,8 @@ Uncomment for local debugging.  "igv.js" is a soft link to the local igv.js repo
       var tableJson = "@TABLE_JSON@";
       var igvBrowser;
       var sessionDictionary = "@SESSION_DICTIONARY@";
+      var keyDictionary = "@KEY_DICTIONARY@";
+      var curr_file = "@CURR_FILE@";
       document.addEventListener("DOMContentLoaded", function () {
         initIGV();
       });
@@ -190,6 +241,47 @@ Uncomment for local debugging.  "igv.js" is a soft link to the local igv.js repo
           initTable();
         });
       }
+
+      let files = null;
+
+      async function session_indexing(key){
+          const fetch_file = keyDictionary[key];
+          if (files === null){
+            alert("Need to select a working folder with the chunk jsons");
+            return;
+          }
+          if (fetch_file === undefined){
+            alert("Varaint graph for this did not get generated");
+            return;
+          }
+          if (fetch_file == curr_file){
+            return sessionDictionary[key];
+          }
+          else{
+            var reader = new FileReader();
+            const file = Array.from(files).find(file => file.name === fetch_file);
+            if (!file) {
+              alert(`File ${fetch_file} needs to be in the selected folder.`);
+            }
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                const contents = e.target.result;
+                const data = JSON.parse(contents);
+                if (!data) {
+                  reject(`Error parsing JSON file ${fetch_file}.`);
+                } else {
+                  resolve(data[key]);
+                }
+              };
+              reader.onerror = function() {
+                reject(`Error reading file ${fetch_file}.`);
+              };
+              reader.readAsText(file);
+            });
+          }
+        
+        }
 
       function save_checkpoint() {
         // Create an array to store the id and class of each row
@@ -236,6 +328,13 @@ Uncomment for local debugging.  "igv.js" is a soft link to the local igv.js repo
 
       function load_checkpoint() {
         var fileInput = document.getElementById('csvFile');
+        
+        // Check if a file is selected
+        if (!fileInput.files || fileInput.files.length === 0) {
+          alert("No file selected.");
+          return; // Exit the function if no file is selected
+        }
+      
         var file = fileInput.files[0];
         var reader = new FileReader();
       
@@ -252,6 +351,12 @@ Uncomment for local debugging.  "igv.js" is a soft link to the local igv.js repo
         };
       
         reader.readAsText(file);
+      
+        // Reset the file input
+        fileInput.value = null;
+        const label = document.getElementById('fileLabel');
+        label.textContent = 'Select checkpoint'; // Reset label text when no file is selected
+        label.classList.remove('file-selected');
       }
 
       function initTable() {
@@ -297,10 +402,14 @@ Uncomment for local debugging.  "igv.js" is a soft link to the local igv.js repo
             const row = document.getElementById(rowID);
             row.classList.add("selected");
             const uniqueId = rowID.substring(4);
-            const session = sessionDictionary[uniqueId];
-            igvBrowser.loadSession({
-              url: session,
-            });
+
+            session_indexing(uniqueId)
+            .then(session => {
+              igvBrowser.loadSession({
+                url: session,
+              });
+            })
+            .catch(console.error);
           };
 
           for (let j = 1; j < headers.length; j++) {
@@ -340,18 +449,22 @@ Uncomment for local debugging.  "igv.js" is a soft link to the local igv.js repo
             }
 
             //This is the last element
-            if (uniqueId_int == Object.keys(sessionDictionary).length - 1) {
+            if (uniqueId_int == tableJson['rows'].length - 1) {
               selected_row.classList.add("selected");
             } else {
               selected_row.classList.remove("selected");
               const next_unique_id = "row_" + (uniqueId_int + 1).toString();
               const row = document.getElementById(next_unique_id);
               row.classList.add("selected");
-              const session = sessionDictionary[(uniqueId_int + 1).toString()];
-              igvBrowser.loadSession({
-                url: session,
-              });
-            }
+              session_indexing((uniqueId_int + 1).toString())
+              .then(session => {
+                igvBrowser.loadSession({
+                  url: session,
+                });
+              })
+              .catch(console.error);
+            };
+
           } else if (backwards_shortcuts.includes(event.key)) {
             //Go back
             if (event.key === "b") {
@@ -366,11 +479,14 @@ Uncomment for local debugging.  "igv.js" is a soft link to the local igv.js repo
                 const row = document.getElementById(previous_unique_id);
                 row.className = "";
                 row.classList.add("selected");
-                const session =
-                  sessionDictionary[(uniqueId_int - 1).toString()];
+                session_indexing((uniqueId_int - 1).toString())
+                .then(session => {
                 igvBrowser.loadSession({
                   url: session,
                 });
+                })
+                .catch(console.error);
+
               }
             }
           } else if (save_shortcut.includes(event.key)) {
@@ -473,6 +589,36 @@ Uncomment for local debugging.  "igv.js" is a soft link to the local igv.js repo
           };
         }
       }
+
+        function updateFileLabel(input) {
+          const label = document.getElementById('fileLabel');
+          if (input.files.length > 0) {
+            label.textContent = input.files[0].name; // Set label text to the name of the selected file
+            label.classList.add('file-selected');
+          } else {
+            label.textContent = 'Select checkpoint'; // Reset label text when no file is selected
+            label.classList.remove('file-selected');
+          }
+        }
+        function updateFolderLabel(input){
+          const label = document.getElementById('folderLabel');
+          if (input.files.length > 0) {
+            label.textContent = "Folder Selected"; // Set label text to the name of the selected file
+            label.classList.add('file-selected');
+          } else {
+            label.textContent = 'Select checkpoint'; // Reset label text when no file is selected
+            label.classList.remove('file-selected');
+          }
+        }
+
+        document.getElementById('folderSelector').addEventListener('change', async (event) => {
+          files = event.target.files;
+          for (let i = 0; i < files.length; i++) {
+            console.log(files[i].webkitRelativePath);
+            // Here you can read the file using FileReader or upload it to a server
+          }
+        });
+
     </script>
   </body>
 </html>
