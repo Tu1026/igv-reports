@@ -113,3 +113,6 @@ class _Feature:
         self.start = start
         self.end = end
         self.bam = bam
+
+    def __str__(self):
+        return f"chr:{self.chr}, start:{self.start}, end:{self.end}, bam:{self.bam}"
