@@ -21,6 +21,7 @@ from igv_reports.tracks import get_track_type, is_format_supported
 import sys
 import multiprocessing as mp
 from itertools import repeat
+from pebble import ProcessPool,ProcessExpired
 
 ### Speed things up with Async
 
@@ -118,21 +119,67 @@ def create_report(args):
     if args.flanking is not None:
         flanking = float(args.flanking)
 
-  
     #TODO fix the ugly multiprocessing code
     execute_status= []
     cores = args.n_workers
+    TIMEOUT_SECONDS = 60
     n_tasks = len(table.features)
+    results = []
     with mp.Manager() as manager:
         sh_session_dict = manager.dict()
         sh_execute_status = manager.list()
-        with manager.Pool(processes=cores) as pool:
-            pool.starmap(feature_process, zip(list(range(1, n_tasks+1)), list(table.features), repeat(sh_session_dict), repeat(sh_execute_status), repeat(trackconfigs), repeat(n_tasks), repeat(flanking), repeat(args)))
-        
+        # with manager.Pool(processes=cores) as pool:
+        futures = []
+        with ProcessPool(max_workers=cores) as pool:
+            i = 0
+            for tuple in table.features:
+                i += 1
+                future = pool.schedule(feature_process, args=(i, tuple, sh_session_dict, sh_execute_status, trackconfigs, n_tasks, flanking, args), timeout=60)
+                future.add_done_callback(task_done)
+                futures.append(future)
+            # future = pool.map(feature_process, [list(range(1, n_tasks+1)), list(table.features), repeat(sh_session_dict), repeat(sh_execute_status), repeat(trackconfigs), repeat(n_tasks), repeat(flanking), repeat(args)], timeout=60)
+            # future = pool.startmap(feature_process, zip(list(range(1, n_tasks+1)), list(table.features), repeat(sh_session_dict), repeat(sh_execute_status), repeat(trackconfigs), repeat(n_tasks), repeat(flanking), repeat(args)), timeout=60)
+
+            for i, f in enumerate(futures):
+                try:
+                    results.append(future.get(TIMEOUT_SECONDS))
+                except TimeoutError:
+                    execute_status.append([f"{i}th variant failed because it timed out after {TIMEOUT_SECONDS} seconds"])
+                except Exception as error:
+                    print("function raised %s" % error)
+                    print(error.traceback)  # Python's traceback of remote process
+
+                # execute_status.extend(list(sh_execute_status))
+                # session_dict = {**session_dict, **dict(sh_session_dict)}
+                
         execute_status.extend(list(sh_execute_status))
         session_dict = {**session_dict, **dict(sh_session_dict)}
+        print(results)
+    # with mp.Manager() as manager:
+    #     sh_session_dict = manager.dict()
+    #     sh_execute_status = manager.list()
+    #     with manager.Pool(processes=cores) as pool:
+    #     # with ProcessPool(max_workers=cores) as pool:
+    #         i = 0
+    #         futures = []
+    #         results = []
+    #         timed_out_results=[]
+    #         for tuple in table.features:
+    #             i += 1
+    #             # futures.append(pool.schedule(feature_process, args=(i, tuple, sh_session_dict, sh_execute_status, trackconfigs, n_tasks, flanking, args), timeout=60))
+    #             futures.append(pool.apply_async(feature_process, args=(i, tuple, sh_session_dict, sh_execute_status, trackconfigs, n_tasks, flanking, args)))
+    #         # future = pool.map(feature_process, zip(list(range(1, n_tasks+1)), list(table.features), repeat(sh_session_dict), repeat(sh_execute_status), repeat(trackconfigs), repeat(n_tasks), repeat(flanking), repeat(args)), timeout=60)
+    #         # future = pool.startmap(feature_process, zip(list(range(1, n_tasks+1)), list(table.features), repeat(sh_session_dict), repeat(sh_execute_status), repeat(trackconfigs), repeat(n_tasks), repeat(flanking), repeat(args)), timeout=60)
+    #         for i, future in enumerate(futures):
+    #             try:
+    #                 results.append(future.get(60))
+    #             except TimeoutError:
+    #                 timed_out_results.append([future, f"{i}th variant failed"])
 
-        
+    #             execute_status.extend(list(sh_execute_status))
+    #             session_dict = {**session_dict, **dict(sh_session_dict)}
+    #     print(results)
+            
     ## Add error tracking functionality
     with open("error_files.txt", "w") as f:
         for status in execute_status:
@@ -183,7 +230,15 @@ def create_report(args):
 
                 o.write(line)
 
-
+def task_done(future):
+    try:
+        result = future.result()  # blocks until results are ready
+    except TimeoutError as error:
+        print("Function took longer than %d seconds" % error.args[1])
+    except Exception as error:
+        print("Function raised %s" % error)
+        print(error.traceback)  # traceback of the function
+        
 def inline_script(line, o, source_type):
     # <script type="text/javascript" src="https://igv.org/web/test/dist/igv.min.js"></script>
     if source_type == "js":
