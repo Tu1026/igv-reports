@@ -149,7 +149,7 @@ def create_report(args):
                 except Exception as error:
                     print("function raised %s" % error)
                     print(traceback.format_exc())  # Python's traceback of remote process
-                    execute_status.append([f"{i}th variant failed because of an error"])
+                    execute_status.append([f"{i}th variant failed because of an error", str(table.features[i][0])])
 
                 # execute_status.extend(list(sh_execute_status))
                 # session_dict = {**session_dict, **dict(sh_session_dict)}
