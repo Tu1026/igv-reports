@@ -22,7 +22,7 @@ import sys
 import multiprocessing as mp
 from itertools import repeat
 from pebble import ProcessPool,ProcessExpired
-
+from pathlib import Path
 ### Speed things up with Async
 
 
@@ -135,7 +135,7 @@ def create_report(args):
             for tuple in table.features:
                 i += 1
                 future = pool.schedule(feature_process, args=(i, tuple, sh_session_dict, sh_execute_status, trackconfigs, n_tasks, flanking, args), timeout=60)
-                future.add_done_callback(task_done)
+                # future.add_done_callback(task_done)
                 futures.append(future)
             # future = pool.map(feature_process, [list(range(1, n_tasks+1)), list(table.features), repeat(sh_session_dict), repeat(sh_execute_status), repeat(trackconfigs), repeat(n_tasks), repeat(flanking), repeat(args)], timeout=60)
             # future = pool.startmap(feature_process, zip(list(range(1, n_tasks+1)), list(table.features), repeat(sh_session_dict), repeat(sh_execute_status), repeat(trackconfigs), repeat(n_tasks), repeat(flanking), repeat(args)), timeout=60)
@@ -147,7 +147,8 @@ def create_report(args):
                     execute_status.append([f"{i}th variant failed because it timed out after {TIMEOUT_SECONDS} seconds"])
                 except Exception as error:
                     print("function raised %s" % error)
-                    print(error.traceback)  # Python's traceback of remote process
+                    print(error.__traceback__)  # Python's traceback of remote process
+                    execute_status.append([f"{i}th variant failed because of an error"])
 
                 # execute_status.extend(list(sh_execute_status))
                 # session_dict = {**session_dict, **dict(sh_session_dict)}
@@ -179,19 +180,27 @@ def create_report(args):
     #             execute_status.extend(list(sh_execute_status))
     #             session_dict = {**session_dict, **dict(sh_session_dict)}
     #     print(results)
-            
+        
+    output_folder = Path(args.output.split(".")[0])
+    
+    ## Creat folder.    
+    output_folder.mkdir(parents=False, exist_ok=True)
+    
     ## Add error tracking functionality
-    with open("error_files.txt", "w") as f:
+    with open(output_folder.joinpath("error_files.txt"), "w") as f:
         for status in execute_status:
             if status[0] == 1:
                 f.write(f"Error: {status[1]} \n")
                 f.write(f"Feature: {status[2]} \n")
                 f.write("\n")
             
-    print("start dumping")
-    session_dict = json.dumps(session_dict)
-    print("finished dumping")
+    # session_dict = json.dumps(session_dict)
+
     
+    print("start dumping")
+    key_dict, first_chunk, first_file = chunk_dict(session_dict, 200, output_folder)
+    session_dict = first_chunk
+    print("finished dumping")
 
     template_file = args.template
     if None == template_file:
@@ -206,7 +215,7 @@ def create_report(args):
     with open(template_file, "r") as f:
         data = f.readlines()
 
-        with open(output_file, "w") as o:
+        with open(output_folder.joinpath(output_file), "w") as o:
 
             for i, line in enumerate(data):
 
@@ -228,7 +237,28 @@ def create_report(args):
                 if j >= 0:
                     line = line.replace('"@SESSION_DICTIONARY@"', session_dict)
 
+                j = line.find('"@KEY_DICTIONARY@"')
+                if j >= 0:
+                    line = line.replace('"@KEY_DICTIONARY@"', key_dict)  
+                j = line.find('"@CURR_FILE@"')
+                if j >= 0:
+                    line = line.replace('"@CURR_FILE@"', first_file)  
                 o.write(line)
+
+def chunk_dict(session_dict, chunk_size, folder):
+    chunks = [dict(list(session_dict.items())[i:i + chunk_size]) for i in range(0, len(session_dict), chunk_size)]
+    key_to_file = {}
+
+    for i, chunk in enumerate(chunks):
+        filename = f'chunk{i}.json'
+        with open(folder.joinpath(filename), 'w') as f:
+            json.dump(chunk, f)
+        for key in chunk.keys():
+            key_to_file[key] = filename
+
+        
+    return  json.dumps(key_to_file), json.dumps(chunks[0]), f'"chunk{0}.json"'
+
 
 def task_done(future):
     try:
@@ -237,7 +267,7 @@ def task_done(future):
         print("Function took longer than %d seconds" % error.args[1])
     except Exception as error:
         print("Function raised %s" % error)
-        print(error.traceback)  # traceback of the function
+        print(error.__traceback__)  # traceback of the function
         
 def inline_script(line, o, source_type):
     # <script type="text/javascript" src="https://igv.org/web/test/dist/igv.min.js"></script>
