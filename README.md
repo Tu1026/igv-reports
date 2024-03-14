@@ -32,6 +32,12 @@ create_report mutations_melted.tsv https://igv-genepattern-org.s3.amazonaws.com/
 > The --flanking parameter is the number of bases to show on either side of the mutation. The --genome parameter is the genome build to use. The --sequence parameter is the column number of the sequence (chromosome) column. The --begin parameter is the column number of the start position column. The --end parameter is the column number of the end position column. The --info-columns parameter is a list of the columns to show in the table. The --bam parameter is the column number of the BAM column. The --output parameter is the name of the output file
 
 
+### Outputs
+The software outputs everything you need into a folder that has the same name as your output html the folders will contain
+- A bunch of chunk jsons. Make sure these are always in the same folder as your HTML when you open it.
+- The HTML file that contains all the mutations
+- An error.txt file that compiles everything that failed during the creation phase
+
 #### Once you have the html file
 
 - Press q to blacklist a mutation
