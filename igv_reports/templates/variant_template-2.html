@@ -198,8 +198,9 @@
         <button class="button" onclick="load_checkpoint()">Load checkpoint</button>
       </div>
       <div>
-        <h2>Select Folder</h2>
-        <input type="file" id="folderSelector" webkitdirectory directory multiple />
+        <h2>Select Folder Output By Program</h2>
+        <input type="file" id="folderSelector" class="custom-file-input" onchange="updateFolderLabel(this)" webkitdirectory directory multiple />
+        <label for="folderSelector" class="custom-folder-label" id="folderLabel">Select Folder!!</label>
       </div>
     </div>
 
