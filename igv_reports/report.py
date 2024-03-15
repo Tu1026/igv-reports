@@ -147,8 +147,11 @@ def create_report(args):
                 except TimeoutError:
                     execute_status.append([f"{i}th variant failed because it timed out after {TIMEOUT_SECONDS} seconds"])
                 except Exception as error:
-                    print("function raised %s" % error)
-                    print(traceback.format_exc())  # Python's traceback of remote process
+                    print("Exception type: ", type(error))  # The type of the exception
+                    print("Exception args: ", error.args)  # The arguments that the exception has been called with
+                    print("Exception message: ", str(error))  # The error message
+                    print("Traceback: ")
+                    traceback.print_exc()  # Python's traceback of remote process
                     execute_status.append([f"{i}th variant failed because of an error", str(table.features[i][0])])
 
                 # execute_status.extend(list(sh_execute_status))
