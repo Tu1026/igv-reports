@@ -145,7 +145,12 @@ def create_report(args):
             for i, f in enumerate(futures):
                 try:
                     results.append(future.result(TIMEOUT_SECONDS))
-                except TimeoutError:
+                except TimeoutError as error:
+                    print("Exception type: ", type(error))  # The type of the exception
+                    print("Exception args: ", error.args)  # The arguments that the exception has been called with
+                    print("Exception message: ", str(error))  # The error message
+                    print("Traceback: ")
+                    traceback.print_exc()  # Python's traceback of remote process
                     execute_status.append([f"{i}th variant failed because it timed out after {TIMEOUT_SECONDS} seconds"])
                 except Exception as error:
                     print("Exception type: ", type(error))  # The type of the exception
